@@ -222,7 +222,85 @@ scaler.update()
 - Maintained Accuracy through gradient scaling
 - Automatic fallback to FP32 on CPU if no graphics device is available
 
-### 7. Production-Ready Infrastructure
+### 7. Advanced Model Architecture
+
+#### Custom AdvancedMelanomaModel (models.py)
+
+```python
+model = AdvancedMelanomaModel(
+    out_dim=2,
+    n_meta_features=3,  # age, sex, anatomical site (optional)
+    pretrained=True,
+    dropout_rate=0.5,
+    num_dropouts=5
+)
+```
+
+This project replaces standard CNN backbones with a custom AdvancedMelanomaModel built on EfficientNet-B3 and designed specifically for robustness, class imbalance handling, and validation-aware deployment.
+
+**Backbone: EfficientNet-B3 (Transfer Learning)**
+- Pretrained on ImageNet
+- Compound scaling (depth, width, resolution)
+- ~40% fewer parameters than ResNet-50
+- Improved accuracy-efficiency trade-off
+- 300x300 input resolution optimized for dermoscopic detail
+The original EfficientNet classifier head is removed and replaced with a custom fully connected classification layer to allow greater architectural flexibility and controlled regularization.
+
+**Multi-Dropout Strategy (Robust Inference)**
+```python
+self.dropouts = nn.ModuleList([
+    nn.Dropout(dropout_rate) for _ in range(num_dropouts)
+])
+```
+- Multiple independent dropout masks
+- Predictions averaged during forward pass
+- Acts as stochastic test-time augmentation
+- Reduces overfitting
+- Improves prediction stability
+- Provides implicit uncertainty smoothing
+
+This strategy enhances robustness and improves generalization under distributional shifts.
+
+**Optional Clinical Metadata Integration**
+```python
+self.meta = nn.Sequential(
+    nn.Linear(n_meta_features, 512),
+    nn.BatchNorm1d(512),
+    Swish_Module(),
+    nn.Dropout(0.3),
+    nn.Linear(512, 128),
+    nn.BatchNorm1d(128),
+    Swish_Module(),
+)
+```
+- Supports structured metadata (e.g., age, sex, anatomical site)
+- Dedicated fully connected processing branch
+- Swish activation for smoother gradient flow
+- Batch normalization for stable training dynamics
+- Concatenation with image features prior to classification
+This enables multimodal learning by combining:
+- Deep visual dermoscopic features
+- Structured clinical context
+
+**Modular Feature Extraction**
+```python
+features = model.extract_features(images)
+```
+- Dedicated backbone feature extraction method
+- Improved interpretability and traceability
+- Facilitates adversarial testing
+- Enables ablation studies
+- Simplifies calibration and robustness evaluation
+
+**Architecture Advantages**
+- Designed for severe class imbalance
+- Robust under adversarial and distributional stress
+- Supports multimodal inputs
+- Fully compatible with Focal Loss and weighted sampling
+- Validation and verification-ready modular structure
+- Optimized for high melanoma sensitivity while maintaining calibration and fairness
+
+### 8. Production-Ready Infrastructure
 
 **Comprehensive Logging (utils.py)**
 ```
@@ -265,36 +343,6 @@ torch.save(checkpoint, checkpoint_path)
 - Best model preservation
 - Complete state recovery (optimizer, scheduler, metrics)
 
-## Project Structure
-BinaryClassificationSystemFramework/
-├── config.py                          # Configuration management
-├── main.py                           # Main training pipeline
-├── models.py                         # Model architectures and losses
-├── training.py                       # Training loop implementation
-├── evaluation.py                     # Evaluation metrics and plots
-├── dataset.py                        # Data pipeline and augmentation
-├── cross_validation.py               # K-fold CV implementation
-├── data_validation.py                # Automated quality assurance
-├── exploratory_data_analysis.py      # Statistical analysis and EDA
-├── pearson_correlation_analysis.py   # Feature correlation analysis
-├── utils.py                          # Logging and system utilities
-├── run_eda.py                        # Standalone EDA script
-├── EDA_INTEGRATION_GUIDE.md          # EDA usage documentation
-│
-├── data/
-│   ├── ISIC_2020_Training_GroundTruth_v2.csv
-│   └── jpeg/train/                   # Image files
-│
-└── results/
-    ├── checkpoints/                  # Model checkpoints
-    ├── metrics/                      # Evaluation plots
-    ├── cross_validation/             # CV fold results
-    ├── eda_analysis/                 # EDA outputs
-    ├── logs/                         # TensorBoard logs
-    ├── data_validation_report.json
-    ├── validation_summary.txt
-    └── metrics_summary.json
-
 ## Quick Start
 ```
 git clone <repository-url>
@@ -334,32 +382,6 @@ python run_eda.py
 # Edit config.py
 RUN_EDA = False
 ```
-
-**Expected Outputs**
-After running `python main.py`, you will find:
-results/
-├── checkpoints/
-│   ├── best_model.pth               # Best validation model
-│   └── checkpoint_epoch_*.pth       # Epoch checkpoints
-│
-├── metrics/
-│   ├── roc_val.png                  # Validation ROC curve
-│   ├── roc_test.png                 # Test ROC curve
-│   ├── pr_curve_val.png             # Validation PR curve
-│   ├── pr_curve_test.png            # Test PR curve
-│   ├── confusion_matrix.png         # Confusion matrix
-│   └── confusion_matrix_test.png
-│
-├── eda_analysis/
-│   ├── eda_report.json              # Complete analysis
-│   ├── eda_summary.txt              # Executive summary
-│   └── eda_visualizations/          # Generated plots
-│
-├── data_validation_report.json      # Validation details
-├── validation_summary.txt           # Quality assurance
-├── metrics_summary.json             # Final results
-├── logs/                            # TensorBoard logs
-└── training_YYYYMMDD_HHMMSS.log     # Execution log
 
 ## Adapting to a specific Use Case
 
