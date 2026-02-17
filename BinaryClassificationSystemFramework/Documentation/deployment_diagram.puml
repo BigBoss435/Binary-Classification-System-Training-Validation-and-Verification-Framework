@@ -1,0 +1,208 @@
+@startuml Medical_AI_VV_Framework_Deployment
+
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam arrowColor #333333
+skinparam componentBackgroundColor #E8F4FD
+skinparam packageBackgroundColor #F5F5F5
+skinparam databaseBackgroundColor #FFF3E0
+skinparam nodeBackgroundColor #E8F5E9
+
+title Medical Image Analysis V&V Framework - Deployment Diagram
+
+' ==================== DATA LAYER ====================
+package "Data Layer" as DataLayer #F5F5F5 {
+    database "ISIC 2020\nDataset" as ISIC {
+        folder "Dermoscopic\nImages" as Images
+        folder "Metadata\nCSV" as Metadata
+    }
+    
+    database "Results\nStorage" as Results {
+        folder "Metrics" as MetricsStorage
+        folder "Reports" as ReportsStorage
+        folder "Models" as ModelsStorage
+    }
+}
+
+' ==================== PREPROCESSING NODE ====================
+node "Data Processing Node" as DataNode #E8F5E9 {
+    package "Data Collection & Preprocessing" as DataProc #E3F2FD {
+        component "Data Loader" as DataLoader
+        component "Missing Value\nHandler" as MissingHandler
+        component "Feature\nEncoder" as FeatureEncoder
+        component "Image Transform\nPipeline" as ImageTransform
+    }
+    
+    package "Data Validation" as DataVal #E3F2FD {
+        component "Schema\nValidator" as SchemaVal
+        component "Image Integrity\nChecker" as ImageCheck
+        component "Outlier\nDetector" as OutlierDetect
+        component "Class Distribution\nAnalyzer" as ClassAnalyze
+    }
+    
+    package "Feature Engineering" as FeatEng #E3F2FD {
+        component "Age Group\nStratification" as AgeGroup
+        component "Risk Level\nMapping" as RiskMap
+        component "Class Weight\nCalculator" as ClassWeight
+        component "Stratified\nSplitter" as Splitter
+    }
+}
+
+' ==================== TRAINING NODE ====================
+node "GPU Training Node" as TrainNode #E8F5E9 {
+    package "Model Architecture" as ModelArch #FFF3E0 {
+        component "ResNet-50\nBackbone" as ResNet
+        component "Custom\nClassifier Head" as ClassifierHead
+        component "Dropout &\nBatchNorm" as Regularization
+    }
+    
+    package "Training Engine" as TrainEngine #FFF3E0 {
+        component "Focal Loss\nFunction" as FocalLoss
+        component "Mixed Precision\nTrainer" as MixedPrecision
+        component "Adam\nOptimizer" as Optimizer
+        component "LR Scheduler" as LRScheduler
+        component "Early Stopping" as EarlyStopping
+        component "Checkpointing" as Checkpoint
+    }
+    
+    package "Ensemble Module" as EnsembleMod #FFF3E0 {
+        component "Model Diversity\nStrategy" as Diversity
+        component "Prediction\nAggregator" as Aggregator
+    }
+}
+
+' ==================== EVALUATION NODE ====================
+node "Evaluation Node" as EvalNode #E8F5E9 {
+    package "Performance Evaluation" as PerfEval #E1BEE7 {
+        component "Test-Time\nAugmentation" as TTA
+        component "Threshold\nOptimizer" as ThresholdOpt
+        component "Metrics\nComputer" as MetricsComp
+        component "Performance\nDecision Gateway" as PerfGateway
+    }
+    
+    package "Fairness Assessment" as FairnessAssess #E1BEE7 {
+        component "Demographic\nParity Analyzer" as DemoParity
+        component "Equalized Odds\nChecker" as EqualOdds
+        component "Bias\nMitigator" as BiasMitigate
+        component "Fairness\nDecision Gateway" as FairGateway
+    }
+    
+    package "Robustness Testing" as RobustTest #E1BEE7 {
+        component "FGSM\nAttack Generator" as FGSM
+        component "PGD\nAttack Generator" as PGD
+        component "Robustness\nEvaluator" as RobustEval
+        component "Adversarial\nTrainer" as AdvTrain
+        component "Robustness\nDecision Gateway" as RobustGateway
+    }
+    
+    package "Calibration Module" as CalibMod #E1BEE7 {
+        component "Temperature\nScaling" as TempScale
+        component "ECE\nCalculator" as ECECalc
+        component "Reliability\nAssessor" as ReliabilityAssess
+    }
+}
+
+' ==================== REPORTING NODE ====================
+node "Reporting Node" as ReportNode #E8F5E9 {
+    package "Documentation Generator" as DocGen #FFECB3 {
+        component "V&V Report\nGenerator" as VVReport
+        component "Metrics Summary\nExporter" as MetricsSummary
+        component "Visualization\nEngine" as VizEngine
+    }
+    
+    artifact "V&V Report\n(PDF/JSON)" as VVArtifact
+    artifact "Metrics\nSummary" as MetricsArtifact
+    artifact "Visualizations\n(PNG)" as VizArtifact
+}
+
+' ==================== EXTERNAL LIBRARIES ====================
+package "Python Libraries" as PyLibs #ECEFF1 {
+    component "PyTorch" as PyTorch
+    component "scikit-learn" as sklearn
+    component "Pandas/NumPy" as PandasNumpy
+    component "Great Expectations" as GreatExp
+    component "Matplotlib/Seaborn" as Plotting
+}
+
+' ==================== CONNECTIONS ====================
+
+' Data flow
+ISIC --> DataLoader
+DataLoader --> MissingHandler
+MissingHandler --> FeatureEncoder
+FeatureEncoder --> ImageTransform
+
+ImageTransform --> SchemaVal
+SchemaVal --> ImageCheck
+ImageCheck --> OutlierDetect
+OutlierDetect --> ClassAnalyze
+
+ClassAnalyze --> AgeGroup
+AgeGroup --> RiskMap
+RiskMap --> ClassWeight
+ClassWeight --> Splitter
+
+' Training flow
+Splitter --> ResNet
+ResNet --> ClassifierHead
+ClassifierHead --> Regularization
+Regularization --> FocalLoss
+FocalLoss --> MixedPrecision
+MixedPrecision --> Optimizer
+Optimizer --> LRScheduler
+LRScheduler --> EarlyStopping
+EarlyStopping --> Checkpoint
+Checkpoint --> Diversity
+Diversity --> Aggregator
+
+' Evaluation flow
+Aggregator --> TTA
+TTA --> ThresholdOpt
+ThresholdOpt --> MetricsComp
+MetricsComp --> PerfGateway
+
+PerfGateway --> DemoParity : "Pass"
+DemoParity --> EqualOdds
+EqualOdds --> BiasMitigate
+BiasMitigate --> FairGateway
+
+FairGateway --> FGSM : "Pass"
+FGSM --> PGD
+PGD --> RobustEval
+RobustEval --> AdvTrain
+AdvTrain --> RobustGateway
+
+RobustGateway --> TempScale : "Pass"
+TempScale --> ECECalc
+ECECalc --> ReliabilityAssess
+
+' Reporting flow
+ReliabilityAssess --> VVReport
+VVReport --> MetricsSummary
+MetricsSummary --> VizEngine
+
+VizEngine --> VVArtifact
+VizEngine --> MetricsArtifact
+VizEngine --> VizArtifact
+
+' Storage connections
+VVArtifact --> ReportsStorage
+MetricsArtifact --> MetricsStorage
+Checkpoint --> ModelsStorage
+
+' Library dependencies
+PyTorch ..> TrainEngine
+sklearn ..> DataVal
+sklearn ..> FeatEng
+PandasNumpy ..> DataProc
+GreatExp ..> SchemaVal
+Plotting ..> VizEngine
+
+' Feedback loops (dashed)
+PerfGateway ..> TrainEngine : "Fail: Retrain"
+FairGateway ..> BiasMitigate : "Fail: Mitigate"
+RobustGateway ..> AdvTrain : "Fail: Enhance"
+
+@enduml
